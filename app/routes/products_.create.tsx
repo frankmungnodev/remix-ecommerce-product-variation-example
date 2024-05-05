@@ -52,7 +52,6 @@ export default function ProductCreate() {
       productId: product.id,
       name: "",
       values: [],
-      valueText: "",
     };
     setOptions((prevOptions) => [...prevOptions, newOption]);
   };
@@ -75,37 +74,22 @@ export default function ProductCreate() {
     setOptions(() => newOptions);
   };
 
-  const onOptionValueChanged = (
-    event: React.ChangeEvent<HTMLInputElement>,
-    option: Option,
-  ) => {
-    const newOptions = options.map((o) => {
-      if (o.id != option.id) return o;
-      return {
-        ...o,
-        valueText: event.target.value,
-      };
-    });
-    setOptions(() => newOptions);
-  };
-
-  const onAddOptionValue = (option: Option) => {
+  const onAddOptionValue = (option: Option, value: string) => {
     setIsOptionAdded(option.values.length == 0);
 
     const optionToUpdate = options.find((o) => o.id == option.id);
-    if (!optionToUpdate || optionToUpdate.valueText.trim().length < 1) return;
+    if (!optionToUpdate) return;
 
     const newOptions = options.map((o) => {
       if (o.id != option.id) return o;
       return {
         ...o,
-        valueText: "",
         values: [
           ...o.values,
           {
             id: crypto.randomUUID().toString(),
             optionId: o.id,
-            name: o.valueText,
+            name: value,
           },
         ],
       };
@@ -113,7 +97,7 @@ export default function ProductCreate() {
     setOptions(() => newOptions);
   };
 
-  const onOptionValueDelete = (
+  const onDeleteOptionValue = (
     option: Option,
     optionValueToDelete: OptionValue,
   ) => {
@@ -296,70 +280,18 @@ export default function ProductCreate() {
           <h1 className="text-lg font-semibold">Options</h1>
           <div className="mt-4 flex flex-col gap-2">
             {/* Option List */}
-            {options.map((option) => {
-              return (
-                <div
-                  key={option.id}
-                  className="flex flex-row items-center gap-6"
-                >
-                  {/* Option Name */}
-                  <div className="rounded-md border-2 border-blue-500 p-1">
-                    <input
-                      type="text"
-                      name="option_name"
-                      autoComplete="name"
-                      className="block bg-transparent p-1.5 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-0 sm:text-sm sm:leading-6"
-                      placeholder="E.g Color"
-                      value={option.name}
-                      onChange={(e) => onOptionNameChanged(e, option)}
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2 overflow-scroll rounded-md border-2 border-blue-500 p-1">
-                    <div className="flex items-center gap-1">
-                      {/* Option Value List */}
-                      {option.values.map((optionValue) => {
-                        return (
-                          <div
-                            key={optionValue.id}
-                            className="flex items-center gap-2 rounded-sm bg-gray-200 px-2 py-1"
-                          >
-                            <p>{optionValue.name}</p>
-                            <button
-                              onClick={() =>
-                                onOptionValueDelete(option, optionValue)
-                              }
-                            >
-                              <MdClose />
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <input
-                      type="text"
-                      name="option_values"
-                      autoComplete="name"
-                      className="block w-screen flex-grow bg-transparent py-1.5 text-gray-900 ring-0 placeholder:text-gray-400 focus:outline-none focus:ring-0 sm:text-sm sm:leading-6"
-                      placeholder="Option values (separated by space) E.g Red Black"
-                      value={option.valueText}
-                      onChange={(e) => onOptionValueChanged(e, option)}
-                      onKeyDown={(e) => {
-                        if (e.code == "Space") {
-                          onAddOptionValue(option);
-                        }
-                      }}
-                    />
-                  </div>
-                  <button
-                    className="rounded-full p-4 hover:bg-red-500 hover:text-white"
-                    onClick={() => onDeleteOption(option)}
-                  >
-                    <MdOutlineDelete />
-                  </button>
-                </div>
-              );
-            })}
+            {options.map((option) => (
+              <ComponentOptionItem
+                key={option.id}
+                option={option}
+                onOptionNameChanged={(e) => onOptionNameChanged(e, option)}
+                onDeleteOption={() => onDeleteOption(option)}
+                onAddOptionValue={(value) => onAddOptionValue(option, value)}
+                onDeleteOptionValue={(optionValue) =>
+                  onDeleteOptionValue(option, optionValue)
+                }
+              />
+            ))}
           </div>
 
           {/* Add option button */}
@@ -388,63 +320,16 @@ export default function ProductCreate() {
             </tr>
           </thead>
           <tbody>
-            {variants.map((variant) => {
-              return (
-                <tr key={variant.id}>
-                  <td className="px-4 py-4">{variant.name}</td>
-                  <td className="px-4 py-4">
-                    <input
-                      type="text"
-                      name="variant_sku"
-                      className="border p-2"
-                      placeholder="SUN-G, JK1234..."
-                      value={variant.sku}
-                      onChange={(e) => onSKUChanged(e, variant)}
-                    />
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="relative">
-                      <span className="absolute inset-y-0 left-0 flex items-center pl-2">
-                        ₹
-                      </span>
-                      <input
-                        type="number"
-                        name="variant_mrp"
-                        className="max-w-28 border p-2 pl-6"
-                        placeholder="0.0"
-                        value={variant.mrp}
-                        onChange={(e) => onMRPChanged(e, variant)}
-                      />
-                    </div>
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="relative">
-                      <span className="absolute inset-y-0 left-0 flex items-center pl-2">
-                        ₹
-                      </span>
-                      <input
-                        type="number"
-                        name="variant_price"
-                        className="max-w-28 border p-2 pl-6"
-                        placeholder="0.0"
-                        value={variant.price}
-                        onChange={(e) => onPriceChanged(e, variant)}
-                      />
-                    </div>
-                  </td>
-                  <td className="px-4 py-4">
-                    <input
-                      type="number"
-                      name="variant_stock"
-                      className="max-w-24 border p-2"
-                      placeholder="0"
-                      value={variant.stock}
-                      onChange={(e) => onStockChanged(e, variant)}
-                    />
-                  </td>
-                </tr>
-              );
-            })}
+            {variants.map((variant) => (
+              <ComponentVariantItem
+                key={variant.id}
+                variant={variant}
+                onSKUChanged={(e) => onSKUChanged(e, variant)}
+                onMRPChanged={(e) => onMRPChanged(e, variant)}
+                onPriceChanged={(e) => onPriceChanged(e, variant)}
+                onStockChanged={(e) => onStockChanged(e, variant)}
+              />
+            ))}
           </tbody>
         </table>
 
@@ -470,3 +355,161 @@ export default function ProductCreate() {
     </div>
   );
 }
+
+const ComponentOptionItem = ({
+  option,
+  onOptionNameChanged,
+  onDeleteOption,
+  onAddOptionValue,
+  onDeleteOptionValue,
+}: {
+  option: Option;
+  onOptionNameChanged: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onDeleteOption: () => void;
+  onAddOptionValue: (optionValue: string) => void;
+  onDeleteOptionValue: (optionValue: OptionValue) => void;
+}) => {
+  const [optionValue, setOptionValue] = useState("");
+
+  return (
+    <div key={option.id} className="flex flex-row items-center gap-6">
+      {/* Option Name */}
+      <div className="rounded-md border-2 border-blue-500 p-1">
+        <input
+          type="text"
+          name="option_name"
+          autoComplete="name"
+          className="block bg-transparent p-1.5 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-0 sm:text-sm sm:leading-6"
+          placeholder="E.g Color"
+          value={option.name}
+          onChange={onOptionNameChanged}
+        />
+      </div>
+
+      <div className="flex items-center gap-2 overflow-scroll rounded-md border-2 border-blue-500 p-1">
+        <div className="flex items-center gap-1">
+          {/* Option Value List */}
+          {option.values.map((optionValue) => (
+            <ComponentOptionValueItem
+              key={optionValue.id}
+              optionValue={optionValue}
+              onDelete={() => onDeleteOptionValue(optionValue)}
+            />
+          ))}
+        </div>
+        <input
+          type="text"
+          name="option_values"
+          autoComplete="name"
+          className="block w-screen flex-grow bg-transparent py-1.5 text-gray-900 ring-0 placeholder:text-gray-400 focus:outline-none focus:ring-0 sm:text-sm sm:leading-6"
+          placeholder="Option values (separated by space) E.g Red Black"
+          value={optionValue}
+          onChange={(e) => setOptionValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.code == "Space") {
+              if (optionValue.trim().length <= 0) return;
+              onAddOptionValue(optionValue);
+              setOptionValue("");
+            }
+          }}
+        />
+      </div>
+      <button
+        className="rounded-full p-4 hover:bg-red-500 hover:text-white"
+        onClick={onDeleteOption}
+      >
+        <MdOutlineDelete />
+      </button>
+    </div>
+  );
+};
+
+const ComponentOptionValueItem = ({
+  optionValue,
+  onDelete,
+}: {
+  optionValue: OptionValue;
+  onDelete: () => void;
+}) => {
+  return (
+    <div
+      key={optionValue.id}
+      className="flex items-center gap-2 rounded-sm bg-gray-200 px-2 py-1"
+    >
+      <p>{optionValue.name}</p>
+      <button onClick={onDelete}>
+        <MdClose />
+      </button>
+    </div>
+  );
+};
+
+const ComponentVariantItem = ({
+  variant,
+  onSKUChanged,
+  onMRPChanged,
+  onPriceChanged,
+  onStockChanged,
+}: {
+  variant: ProductVariant;
+  onSKUChanged: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onMRPChanged: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onPriceChanged: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onStockChanged: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) => {
+  return (
+    <tr key={variant.id}>
+      <td className="px-4 py-4">{variant.name}</td>
+      <td className="px-4 py-4">
+        <input
+          type="text"
+          name="variant_sku"
+          className="border p-2"
+          placeholder="SUN-G, JK1234..."
+          value={variant.sku}
+          onChange={onSKUChanged}
+        />
+      </td>
+      <td className="px-4 py-4">
+        <div className="relative">
+          <span className="absolute inset-y-0 left-0 flex items-center pl-2">
+            ₹
+          </span>
+          <input
+            type="number"
+            name="variant_mrp"
+            className="max-w-28 border p-2 pl-6"
+            placeholder="0.0"
+            value={variant.mrp}
+            onChange={onMRPChanged}
+          />
+        </div>
+      </td>
+      <td className="px-4 py-4">
+        <div className="relative">
+          <span className="absolute inset-y-0 left-0 flex items-center pl-2">
+            ₹
+          </span>
+          <input
+            type="number"
+            name="variant_price"
+            className="max-w-28 border p-2 pl-6"
+            placeholder="0.0"
+            value={variant.price}
+            onChange={onPriceChanged}
+          />
+        </div>
+      </td>
+      <td className="px-4 py-4">
+        <input
+          type="number"
+          name="variant_stock"
+          className="max-w-24 border p-2"
+          placeholder="0"
+          value={variant.stock}
+          onChange={onStockChanged}
+        />
+      </td>
+    </tr>
+  );
+};

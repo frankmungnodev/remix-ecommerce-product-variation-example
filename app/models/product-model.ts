@@ -10,7 +10,6 @@ export type Option = {
     productId: string,
     name: string,
     values: OptionValue[],
-    valueText: string,
 }
 
 export type OptionValue = {
