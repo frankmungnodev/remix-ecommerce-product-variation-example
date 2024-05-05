@@ -79,27 +79,35 @@ export default function ProductCreate() {
     event: React.ChangeEvent<HTMLInputElement>,
     option: Option,
   ) => {
-    const newList = event.target.value.split(" ");
-    const isTwoCells = newList.length > 1;
-    setIsOptionAdded(isTwoCells && option.values.length == 0);
+    const newOptions = options.map((o) => {
+      if (o.id != option.id) return o;
+      return {
+        ...o,
+        valueText: event.target.value,
+      };
+    });
+    setOptions(() => newOptions);
+  };
+
+  const onAddOptionValue = (option: Option) => {
+    setIsOptionAdded(option.values.length == 0);
+
+    const optionToUpdate = options.find((o) => o.id == option.id);
+    if (!optionToUpdate || optionToUpdate.valueText.trim().length < 1) return;
 
     const newOptions = options.map((o) => {
       if (o.id != option.id) return o;
       return {
         ...o,
-        valueText: isTwoCells
-          ? newList[newList.length - 1]
-          : event.target.value,
-        values: isTwoCells
-          ? [
-              ...o.values,
-              {
-                id: crypto.randomUUID().toString(),
-                optionId: o.id,
-                name: newList[newList.length - 2],
-              },
-            ]
-          : o.values,
+        valueText: "",
+        values: [
+          ...o.values,
+          {
+            id: crypto.randomUUID().toString(),
+            optionId: o.id,
+            name: o.valueText,
+          },
+        ],
       };
     });
     setOptions(() => newOptions);
@@ -336,6 +344,11 @@ export default function ProductCreate() {
                       placeholder="Option values (separated by space) E.g Red Black"
                       value={option.valueText}
                       onChange={(e) => onOptionValueChanged(e, option)}
+                      onKeyDown={(e) => {
+                        if (e.code == "Space") {
+                          onAddOptionValue(option);
+                        }
+                      }}
                     />
                   </div>
                   <button
