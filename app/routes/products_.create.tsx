@@ -205,7 +205,6 @@ export default function ProductCreate() {
             variant.optionIds.join(",") === poppedOptionIds.join(",") &&
             variant.optionValueIds.join(",") === poppedOptionValueIds.join(","),
         );
-        console.log(`${variantName}, ${optionIds}`);
 
         if (previousModifiedVariant) {
           setVariants((old) => [
