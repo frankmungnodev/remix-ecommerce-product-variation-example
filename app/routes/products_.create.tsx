@@ -26,7 +26,7 @@ export default function ProductCreate() {
   const [product, setProduct] = useState<Product>(freshProduct);
   const [options, setOptions] = useState<Option[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
-  const [isNewOptionAdded, setIsNewOptionAdded] = useState(false);
+  const [isOptionAdded, setIsOptionAdded] = useState(false);
 
   useEffect(() => {
     setVariants(
@@ -81,7 +81,7 @@ export default function ProductCreate() {
   ) => {
     const newList = event.target.value.split(" ");
     const isTwoCells = newList.length > 1;
-    setIsNewOptionAdded(isTwoCells && option.values.length == 0);
+    setIsOptionAdded(isTwoCells && option.values.length == 0);
 
     const newOptions = options.map((o) => {
       if (o.id != option.id) return o;
@@ -190,7 +190,7 @@ export default function ProductCreate() {
       remainingOptions.length === 0 ||
       remainingOptions.every((option) => option.values.length === 0)
     ) {
-      if (isNewOptionAdded && options.length > 1) {
+      if (isOptionAdded && options.length > 1) {
         const poppedOptionIds = [...optionIds];
         const poppedOptionValueIds = [...optionValueIds];
         poppedOptionIds.pop();
@@ -221,7 +221,7 @@ export default function ProductCreate() {
           ]);
           return;
         }
-        setIsNewOptionAdded(false);
+        setIsOptionAdded(false);
       }
 
       // Prevent create new variant when existing option value change
