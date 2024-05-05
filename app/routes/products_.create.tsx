@@ -42,6 +42,7 @@ export default function ProductCreate() {
   const onAddOption = () => {
     const newOption = {
       id: crypto.randomUUID().toString(),
+      productId: product.id,
       name: "",
       values: [],
       valueText: "",

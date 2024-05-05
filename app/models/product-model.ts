@@ -7,6 +7,7 @@ export type Product = {
 
 export type Option = {
     id: string,
+    productId: string,
     name: string,
     values: OptionValue[],
     valueText: string,
