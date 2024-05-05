@@ -26,9 +26,9 @@ export default function ProductCreate() {
   const [product, setProduct] = useState<Product>(freshProduct);
   const [options, setOptions] = useState<Option[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [isNewOptionAdded, setIsNewOptionAdded] = useState(false);
 
   useEffect(() => {
-    console.log("options change", ...options);
     setVariants(
       variants.filter(
         (v) =>
@@ -45,8 +45,6 @@ export default function ProductCreate() {
     generateVariations("", options);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options]);
-
-  useEffect(() => console.log("variants", ...variants), [variants]);
 
   const onAddOption = () => {
     const newOption = {
@@ -83,6 +81,7 @@ export default function ProductCreate() {
   ) => {
     const newList = event.target.value.split(" ");
     const isTwoCells = newList.length > 1;
+    setIsNewOptionAdded(isTwoCells && option.values.length == 0);
 
     const newOptions = options.map((o) => {
       if (o.id != option.id) return o;
@@ -110,6 +109,13 @@ export default function ProductCreate() {
     option: Option,
     optionValueToDelete: OptionValue,
   ) => {
+    setVariants((prev) =>
+      prev.filter((variant) =>
+        variant.optionValueIds.every(
+          (optionId) => optionId !== optionValueToDelete.id,
+        ),
+      ),
+    );
     const newOptions = options.map((o) => {
       if (o.id != option.id) return o;
 
@@ -118,13 +124,6 @@ export default function ProductCreate() {
         values: o.values.filter((e) => e.id != optionValueToDelete.id),
       };
     });
-    setVariants(() =>
-      variants.filter((variant) =>
-        variant.optionValueIds.every(
-          (optionId) => optionId !== optionValueToDelete.id,
-        ),
-      ),
-    );
     setOptions(() => newOptions);
   };
 
@@ -148,7 +147,7 @@ export default function ProductCreate() {
     const newVariants = variants.map((variant) => {
       if (variantToUpdate.id != variant.id) return variant;
 
-      return { ...variant, mrp: parseFloat(e.target.value) };
+      return { ...variant, mrp: parseFloat(e.target.value ?? "0.0") };
     });
 
     setVariants(() => newVariants);
@@ -161,7 +160,7 @@ export default function ProductCreate() {
     const newVariants = variants.map((variant) => {
       if (variantToUpdate.id != variant.id) return variant;
 
-      return { ...variant, price: parseFloat(e.target.value) };
+      return { ...variant, price: parseFloat(e.target.value ?? "0.0") };
     });
 
     setVariants(() => newVariants);
@@ -174,7 +173,7 @@ export default function ProductCreate() {
     const newVariants = variants.map((variant) => {
       if (variantToUpdate.id != variant.id) return variant;
 
-      return { ...variant, stock: parseInt(e.target.value) };
+      return { ...variant, stock: parseInt(e.target.value ?? "0") };
     });
 
     setVariants(() => newVariants);
@@ -182,19 +181,55 @@ export default function ProductCreate() {
 
   // generate variants
   function generateVariations(
-    prefix: string,
-    options: Option[],
-    optionsIds: string[] = [],
+    variantName: string,
+    remainingOptions: Option[],
+    optionIds: string[] = [],
     optionValueIds: string[] = [],
   ): void {
     if (
-      options.length === 0 ||
-      options.every((option) => option.values.length === 0)
+      remainingOptions.length === 0 ||
+      remainingOptions.every((option) => option.values.length === 0)
     ) {
+      if (isNewOptionAdded && options.length > 1) {
+        const poppedOptionIds = [...optionIds];
+        const poppedOptionValueIds = [...optionValueIds];
+        poppedOptionIds.pop();
+        poppedOptionValueIds.pop();
+
+        const previousModifiedVariant = variants.find(
+          (variant) =>
+            (variant.sku !== "" ||
+              variant.mrp !== 0.0 ||
+              variant.price !== 0.0 ||
+              variant.stock !== 0) &&
+            variant.optionIds.join(",") === poppedOptionIds.join(",") &&
+            variant.optionValueIds.join(",") === poppedOptionValueIds.join(","),
+        );
+        console.log(`${variantName}, ${optionIds}`);
+
+        if (previousModifiedVariant) {
+          setVariants((old) => [
+            ...old.filter(
+              (oldVariant) => oldVariant.id != previousModifiedVariant.id,
+            ),
+            {
+              ...previousModifiedVariant,
+              id: crypto.randomUUID().toString(),
+              optionIds: [...optionIds],
+              optionValueIds: [...optionValueIds],
+              name: variantName.trim(),
+            },
+          ]);
+          return;
+        }
+        setIsNewOptionAdded(false);
+      }
+
+      // Prevent create new variant when existing option value change
       if (
         variants.find(
           (e) =>
-            e.name == prefix &&
+            e.name == variantName &&
             (e.sku !== "" || e.mrp !== 0.0 || e.price !== 0.0 || e.stock !== 0),
         )
       ) {
@@ -205,9 +240,9 @@ export default function ProductCreate() {
         ...old,
         {
           id: crypto.randomUUID().toString(),
-          optionIds: [...optionsIds],
+          optionIds: [...optionIds],
           optionValueIds: [...optionValueIds],
-          name: prefix.trim(),
+          name: variantName.trim(),
           mrp: 0.0,
           price: 0.0,
           sku: "",
@@ -217,17 +252,17 @@ export default function ProductCreate() {
       return;
     }
 
-    const currentOption = options[0];
-    const remainingOptions = options.slice(1);
+    const currentOption = remainingOptions[0];
+    const nextRemainingOptions = remainingOptions.slice(1);
 
     for (const value of currentOption.values) {
-      const newPrefix = `${prefix} ${value.name}`;
-      const newOptionsIds = [...optionsIds, currentOption.id];
+      const newVariantName = `${variantName} ${value.name}`;
+      const newOptionIds = [...optionIds, currentOption.id];
       const newOptionValueIds = [...optionValueIds, value.id];
       generateVariations(
-        newPrefix.trim(),
-        remainingOptions,
-        newOptionsIds,
+        newVariantName.trim(),
+        nextRemainingOptions,
+        newOptionIds,
         newOptionValueIds,
       );
     }
