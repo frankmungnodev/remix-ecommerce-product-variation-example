@@ -319,6 +319,8 @@ export default function ProductCreate() {
         </div>
 
         <div className="h-4" />
+
+        {/* Variants */}
         <table className="table-auto">
           <thead className="bg-gray-400">
             <tr>
@@ -389,6 +391,25 @@ export default function ProductCreate() {
             })}
           </tbody>
         </table>
+
+        <div className="h-4" />
+
+        {/* Divider */}
+        <div className="my-4 border-t border-gray-300"></div>
+
+        {/* Raw Json */}
+        <div className="flex flex-col">
+          <h1 className="text-lg font-semibold">Raw JSON</h1>
+
+          <div className="mt-4 rounded border border-gray-200 p-4 shadow-md">
+            <pre>
+              <code>
+                {JSON.stringify({ ...product, options, variants }, null, 2)}
+              </code>
+            </pre>
+          </div>
+        </div>
+        <p></p>
       </div>
     </div>
   );
