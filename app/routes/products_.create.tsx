@@ -1,3 +1,4 @@
+import { useLoaderData } from "@remix-run/react";
 import { useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { MdClose, MdOutlineDelete } from "react-icons/md";
@@ -8,13 +9,21 @@ import {
   ProductVariant,
 } from "~/models/product-model";
 
-export default function ProductCreate() {
-  const [product, setProduct] = useState<Product>({
+export const loader = async () => {
+  const product: Product = {
     id: crypto.randomUUID().toString(),
     name: "",
     options: [],
     variants: [],
-  });
+  };
+
+  return product;
+};
+
+export default function ProductCreate() {
+  const freshProduct = useLoaderData<typeof loader>();
+
+  const [product, setProduct] = useState<Product>(freshProduct);
   const [options, setOptions] = useState<Option[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
 
