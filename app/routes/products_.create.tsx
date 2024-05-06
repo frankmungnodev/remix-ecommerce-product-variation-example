@@ -28,6 +28,94 @@ export default function ProductCreate() {
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [isOptionAdded, setIsOptionAdded] = useState(false);
 
+  // generate variants
+  function generateVariations(
+    variantName: string,
+    remainingOptions: Option[],
+    optionIds: string[] = [],
+    optionValueIds: string[] = [],
+  ): void {
+    if (
+      remainingOptions.length === 0 ||
+      remainingOptions.every((option) => option.values.length === 0)
+    ) {
+      if (isOptionAdded) {
+        const poppedOptionIds = [...optionIds];
+        const poppedOptionValueIds = [...optionValueIds];
+        poppedOptionIds.pop();
+        poppedOptionValueIds.pop();
+
+        const previousModifiedVariant = variants.find(
+          (variant) =>
+            (variant.sku !== "" ||
+              variant.mrp !== 0.0 ||
+              variant.price !== 0.0 ||
+              variant.stock !== 0) &&
+            variant.optionIds.join(",") === poppedOptionIds.join(",") &&
+            variant.optionValueIds.join(",") === poppedOptionValueIds.join(","),
+        );
+
+        if (previousModifiedVariant) {
+          setVariants((old) => [
+            ...old.filter(
+              (oldVariant) => oldVariant.id != previousModifiedVariant.id,
+            ),
+            {
+              ...previousModifiedVariant,
+              id: crypto.randomUUID().toString(),
+              optionIds: [...optionIds],
+              optionValueIds: [...optionValueIds],
+              name: variantName.trim(),
+            },
+          ]);
+          return;
+        }
+        setIsOptionAdded(false);
+      }
+
+      // Prevent create new variant when existing option already modified
+      if (
+        variants.find(
+          (e) =>
+            e.name == variantName &&
+            (e.sku !== "" || e.mrp !== 0.0 || e.price !== 0.0 || e.stock !== 0),
+        )
+      ) {
+        return;
+      }
+
+      setVariants((old) => [
+        ...old,
+        {
+          id: crypto.randomUUID().toString(),
+          optionIds: [...optionIds],
+          optionValueIds: [...optionValueIds],
+          name: variantName.trim(),
+          mrp: 0.0,
+          price: 0.0,
+          sku: "",
+          stock: 0,
+        },
+      ]);
+      return;
+    }
+
+    const currentOption = remainingOptions[0];
+    const nextRemainingOptions = remainingOptions.slice(1);
+
+    for (const value of currentOption.values) {
+      const newVariantName = `${variantName} ${value.name}`;
+      const newOptionIds = [...optionIds, currentOption.id];
+      const newOptionValueIds = [...optionValueIds, value.id];
+      generateVariations(
+        newVariantName.trim(),
+        nextRemainingOptions,
+        newOptionIds,
+        newOptionValueIds,
+      );
+    }
+  }
+
   useEffect(() => {
     setVariants(
       variants.filter(
@@ -42,7 +130,10 @@ export default function ProductCreate() {
     if (options.length === 0 || options.every((e) => e.values.length === 0)) {
       return;
     }
-    generateVariations("", options);
+    generateVariations(
+      "",
+      options.filter((o) => o.values.length > 0),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options]);
 
@@ -170,94 +261,6 @@ export default function ProductCreate() {
 
     setVariants(() => newVariants);
   };
-
-  // generate variants
-  function generateVariations(
-    variantName: string,
-    remainingOptions: Option[],
-    optionIds: string[] = [],
-    optionValueIds: string[] = [],
-  ): void {
-    if (
-      remainingOptions.length === 0 ||
-      remainingOptions.every((option) => option.values.length === 0)
-    ) {
-      if (isOptionAdded && options.length > 1) {
-        const poppedOptionIds = [...optionIds];
-        const poppedOptionValueIds = [...optionValueIds];
-        poppedOptionIds.pop();
-        poppedOptionValueIds.pop();
-
-        const previousModifiedVariant = variants.find(
-          (variant) =>
-            (variant.sku !== "" ||
-              variant.mrp !== 0.0 ||
-              variant.price !== 0.0 ||
-              variant.stock !== 0) &&
-            variant.optionIds.join(",") === poppedOptionIds.join(",") &&
-            variant.optionValueIds.join(",") === poppedOptionValueIds.join(","),
-        );
-
-        if (previousModifiedVariant) {
-          setVariants((old) => [
-            ...old.filter(
-              (oldVariant) => oldVariant.id != previousModifiedVariant.id,
-            ),
-            {
-              ...previousModifiedVariant,
-              id: crypto.randomUUID().toString(),
-              optionIds: [...optionIds],
-              optionValueIds: [...optionValueIds],
-              name: variantName.trim(),
-            },
-          ]);
-          return;
-        }
-        setIsOptionAdded(false);
-      }
-
-      // Prevent create new variant when existing option value change
-      if (
-        variants.find(
-          (e) =>
-            e.name == variantName &&
-            (e.sku !== "" || e.mrp !== 0.0 || e.price !== 0.0 || e.stock !== 0),
-        )
-      ) {
-        return;
-      }
-
-      setVariants((old) => [
-        ...old,
-        {
-          id: crypto.randomUUID().toString(),
-          optionIds: [...optionIds],
-          optionValueIds: [...optionValueIds],
-          name: variantName.trim(),
-          mrp: 0.0,
-          price: 0.0,
-          sku: "",
-          stock: 0,
-        },
-      ]);
-      return;
-    }
-
-    const currentOption = remainingOptions[0];
-    const nextRemainingOptions = remainingOptions.slice(1);
-
-    for (const value of currentOption.values) {
-      const newVariantName = `${variantName} ${value.name}`;
-      const newOptionIds = [...optionIds, currentOption.id];
-      const newOptionValueIds = [...optionValueIds, value.id];
-      generateVariations(
-        newVariantName.trim(),
-        nextRemainingOptions,
-        newOptionIds,
-        newOptionValueIds,
-      );
-    }
-  }
 
   return (
     <div>
