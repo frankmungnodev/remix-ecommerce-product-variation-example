@@ -27,6 +27,8 @@ export default function ProductCreate() {
   const [options, setOptions] = useState<Option[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [isOptionAdded, setIsOptionAdded] = useState(false);
+  const [deletedOptionValue, setDeletedOptionValue] =
+    useState<OptionValue | null>(null);
 
   // generate variants
   function generateVariations(
@@ -40,6 +42,8 @@ export default function ProductCreate() {
       remainingOptions.every((option) => option.values.length === 0)
     ) {
       if (isOptionAdded) {
+        setIsOptionAdded(false);
+
         const poppedOptionIds = [...optionIds];
         const poppedOptionValueIds = [...optionValueIds];
         poppedOptionIds.pop();
@@ -70,7 +74,32 @@ export default function ProductCreate() {
           ]);
           return;
         }
-        setIsOptionAdded(false);
+      }
+
+      if (deletedOptionValue) {
+        setDeletedOptionValue(null);
+
+        const variantToDelete = variants.find(
+          (variant) =>
+            variant.optionIds.sort().toString() ===
+              [...optionIds, deletedOptionValue.optionId].sort().toString() &&
+            variant.optionValueIds.sort().toString() ===
+              [...optionValueIds, deletedOptionValue.id].sort().toString(),
+        );
+
+        if (variantToDelete) {
+          setVariants((old) => [
+            ...old.filter((oldVariant) => oldVariant.id != variantToDelete.id),
+            {
+              ...variantToDelete,
+              id: crypto.randomUUID().toString(),
+              optionIds: [...optionIds],
+              optionValueIds: [...optionValueIds],
+              name: variantName.trim(),
+            },
+          ]);
+          return;
+        }
       }
 
       // Prevent create new variant when existing option already modified
@@ -188,19 +217,10 @@ export default function ProductCreate() {
     setOptions(() => newOptions);
   };
 
-  const onDeleteOptionValue = (
-    option: Option,
-    optionValueToDelete: OptionValue,
-  ) => {
-    setVariants((prev) =>
-      prev.filter((variant) =>
-        variant.optionValueIds.every(
-          (optionId) => optionId !== optionValueToDelete.id,
-        ),
-      ),
-    );
+  const onDeleteOptionValue = (optionValueToDelete: OptionValue) => {
+    setDeletedOptionValue(optionValueToDelete);
     const newOptions = options.map((o) => {
-      if (o.id != option.id) return o;
+      if (o.id != optionValueToDelete.optionId) return o;
 
       return {
         ...o,
@@ -290,9 +310,7 @@ export default function ProductCreate() {
                 onOptionNameChanged={(e) => onOptionNameChanged(e, option)}
                 onDeleteOption={() => onDeleteOption(option)}
                 onAddOptionValue={(value) => onAddOptionValue(option, value)}
-                onDeleteOptionValue={(optionValue) =>
-                  onDeleteOptionValue(option, optionValue)
-                }
+                onDeleteOptionValue={onDeleteOptionValue}
               />
             ))}
           </div>
