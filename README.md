@@ -1,4 +1,4 @@
-# Shopify Link Product Creator
+# Shopify Like Product Creator
 
 Mocking shopify product variant creation.
 
