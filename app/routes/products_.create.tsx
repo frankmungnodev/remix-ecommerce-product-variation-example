@@ -1,5 +1,5 @@
 import { useLoaderData } from "@remix-run/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { MdClose, MdOutlineDelete } from "react-icons/md";
 import {
@@ -23,12 +23,16 @@ export const loader = async () => {
 export default function ProductCreate() {
   const freshProduct = useLoaderData<typeof loader>();
 
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [addedOptionId, setAddedOptionId] = useState<string | null>(null);
+
   const [product, setProduct] = useState<Product>(freshProduct);
   const [options, setOptions] = useState<Option[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [isOptionAdded, setIsOptionAdded] = useState(false);
   const [deletedOptionValue, setDeletedOptionValue] =
     useState<OptionValue | null>(null);
+  const [deletedOption, setDeletedOption] = useState<Option | null>(null);
 
   // generate variants
   function generateVariations(
@@ -94,6 +98,10 @@ export default function ProductCreate() {
 
         const variantToDelete = variants.find(
           (variant) =>
+            (variant.sku !== "" ||
+              variant.mrp !== 0.0 ||
+              variant.price !== 0.0 ||
+              variant.stock !== 0) &&
             variant.optionIds.sort().toString() ===
               [...optionIds, deletedOptionValue.optionId].sort().toString() &&
             variant.optionValueIds.sort().toString() ===
@@ -113,6 +121,50 @@ export default function ProductCreate() {
           ]);
           return;
         }
+      }
+
+      if (deletedOption) {
+        setDeletedOption(null);
+
+        let newVariants = [...variants];
+        deletedOption.values.forEach((opValue, index) => {
+          if (index != deletedOption.values.length - 1) {
+            newVariants = newVariants.filter(
+              (oldVariant) => !oldVariant.optionValueIds.includes(opValue.id),
+            );
+            setVariants(() => newVariants);
+            return;
+          }
+
+          const variantToDelete = newVariants.find(
+            (variant) =>
+              (variant.sku !== "" ||
+                variant.mrp !== 0.0 ||
+                variant.price !== 0.0 ||
+                variant.stock !== 0) &&
+              variant.optionIds.sort().toString() ===
+                [...optionIds, opValue.optionId].sort().toString() &&
+              variant.optionValueIds.sort().toString() ===
+                [...optionValueIds, opValue.id].sort().toString(),
+          );
+
+          if (variantToDelete) {
+            newVariants = [
+              ...newVariants.filter(
+                (oldVariant) => oldVariant.id != variantToDelete.id,
+              ),
+              {
+                ...variantToDelete,
+                id: crypto.randomUUID().toString(),
+                optionIds: [...optionIds],
+                optionValueIds: [...optionValueIds],
+                name: variantName.trim(),
+              },
+            ];
+            return;
+          }
+        });
+        setVariants(() => newVariants);
       }
 
       // Prevent create new variant when existing option already modified
@@ -159,6 +211,11 @@ export default function ProductCreate() {
   }
 
   useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+      setAddedOptionId(null);
+    }
+
     setVariants(
       variants.filter(
         (v) =>
@@ -186,13 +243,12 @@ export default function ProductCreate() {
       name: "",
       values: [],
     };
+    setAddedOptionId(() => newOption.id);
     setOptions((prevOptions) => [...prevOptions, newOption]);
   };
 
   const onDeleteOption = (option: Option) => {
-    setVariants(() =>
-      variants.filter((e) => e.optionIds.every((oi) => oi !== option.id)),
-    );
+    setDeletedOption(option);
     setOptions(() => options.filter((e) => e.id != option.id));
   };
 
@@ -320,7 +376,9 @@ export default function ProductCreate() {
               <ComponentOptionItem
                 key={option.id}
                 option={option}
+                inputRef={addedOptionId === option.id ? inputRef : null}
                 onOptionNameChanged={(e) => onOptionNameChanged(e, option)}
+                onAddOption={onAddOption}
                 onDeleteOption={() => onDeleteOption(option)}
                 onAddOptionValue={(value) => onAddOptionValue(option, value)}
                 onDeleteOptionValue={onDeleteOptionValue}
@@ -392,13 +450,17 @@ export default function ProductCreate() {
 
 const ComponentOptionItem = ({
   option,
+  inputRef,
   onOptionNameChanged,
+  onAddOption,
   onDeleteOption,
   onAddOptionValue,
   onDeleteOptionValue,
 }: {
   option: Option;
+  inputRef: React.RefObject<HTMLInputElement> | null;
   onOptionNameChanged: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onAddOption: () => void;
   onDeleteOption: () => void;
   onAddOptionValue: (optionValue: string) => void;
   onDeleteOptionValue: (optionValue: OptionValue) => void;
@@ -412,6 +474,7 @@ const ComponentOptionItem = ({
         <input
           type="text"
           name="option_name"
+          ref={inputRef}
           autoComplete="name"
           className="block bg-transparent p-1.5 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-0 sm:text-sm sm:leading-6"
           placeholder="E.g Color"
@@ -444,6 +507,8 @@ const ComponentOptionItem = ({
               if (optionValue.trim().length <= 0) return;
               onAddOptionValue(optionValue);
               setOptionValue("");
+            } else if (e.code == "Enter") {
+              onAddOption();
             }
           }}
         />
