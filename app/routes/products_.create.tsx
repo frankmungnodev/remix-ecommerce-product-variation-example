@@ -79,6 +79,19 @@ export default function ProductCreate() {
       if (deletedOptionValue) {
         setDeletedOptionValue(null);
 
+        const optionOfCurrentDeletedValue = options.find(
+          (op) => op.id === deletedOptionValue.optionId,
+        );
+
+        if (optionOfCurrentDeletedValue?.values?.length || 0 > 0) {
+          const newVariants = variants.filter(
+            (oldVariant) =>
+              !oldVariant.optionValueIds.includes(deletedOptionValue.id),
+          );
+          setVariants(() => newVariants);
+          return;
+        }
+
         const variantToDelete = variants.find(
           (variant) =>
             variant.optionIds.sort().toString() ===
